@@ -1,0 +1,200 @@
+require:
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-performance
+
+AllCops:
+  TargetRubyVersion: 2.6.6
+  Exclude:
+    - bin/**/*
+    - vendor/**/*
+    - node_modules/**/*
+    - db/schema.rb
+    - db/seeds/**/*
+
+# RAILS
+Rails:
+  Enabled: true
+Rails/BulkChangeTable:
+  Enabled: false
+Rails/OutputSafety:
+  Enabled: true
+Rails/UnknownEnv:
+  Environments:
+    - production
+    - development
+    - test
+    - staging
+    - cucumber
+Rails/SkipsModelValidations:
+  Exclude:
+    - "spec/**/*.rb"
+    - "spec/factories/*.rb"
+
+# RSPEC
+RSpec/DescribeClass:
+  Exclude:
+    - "spec/db/**/*_spec.rb"
+    - "spec/controllers/concerns/*_spec.rb"
+    - "spec/requests/**/*_spec.rb"
+RSpec/EmptyExampleGroup:
+  Exclude:
+    - "spec/policies/**/*_spec.rb"
+RSpec/ImplicitSubject:
+  Enabled: false
+RSpec/MultipleExpectations:
+  Enabled: false
+RSpec/ExampleLength:
+  Enabled: false
+RSpec/SubjectStub:
+  Enabled: false
+RSpec/LetSetup:
+  Enabled: false
+RSpec/ScatteredLet:
+  Enabled: false
+RSpec/NestedGroups:
+  Max: 4
+
+## LAYOUT
+# Commonly used screens these days easily fit more than 80 characters.
+Layout/LineLength:
+  Max: 120
+# Most readable form.
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: key
+  EnforcedColonStyle: key
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented_relative_to_receiver
+
+## LINT
+# Shadowing outer local variables with block parameters is often useful
+# to not reinvent a new name for the same thing, it highlights the relation
+# between the outer variable and the parameter. The cases where it's actually
+# confusing are rare, and usually bad for other reasons already, for example
+# because the method is too long.
+Lint/ShadowingOuterLocalVariable:
+  Enabled: false
+Lint/RaiseException:
+  Enabled: true
+Lint/StructNewOverride:
+  Enabled: true
+Lint/AssignmentInCondition:
+  AllowSafeAssignment: false
+# Suppressing exceptions can be perfectly fine, and be it to avoid to
+# explicitly type nil into the rescue since that's what you want to return,
+# or suppressing LoadError for optional dependencies
+Lint/SuppressedException:
+  Enabled: false
+Lint/MissingSuper:
+  Exclude:
+    - "app/services/**/*"
+
+## METRICS
+# Too short methods lead to extraction of single-use methods, which can make
+# the code easier to read (by naming things), but can also clutter the class
+Metrics/MethodLength:
+  Max: 25
+# The guiding principle of classes is SRP, SRP can't be accurately measured by LoC
+Metrics/ClassLength:
+  Max: 1500
+Metrics/ModuleLength:
+  CountComments: false
+  Max: 200
+  Exclude:
+    - "spec/**/*_spec.rb"
+Metrics/BlockLength:
+  Exclude:
+    - "app/views/**/*"
+    - "config/**/*.rb"
+    - "db/**/*.rb"
+    - "lib/**/*"
+    - "spec/**/*"
+Metrics/AbcSize:
+  Enabled: 35
+Metrics/ParameterLists:
+  Max: 5
+  CountKeywordArgs: true
+
+## NAMING
+# This is just silly. Calling the argument `other` in all cases makes no sense.
+Naming/BinaryOperatorParameterName:
+  Enabled: false
+
+## STYLE
+# Single quotes being faster is hardly measurable and only affects parse time.
+# Enforcing double quotes reduces the times where you need to change them
+# when introducing an interpolation. Use single quotes only if their semantics
+# are needed.
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+# We do not need to support Ruby 1.9, so this is good to use.
+Style/SymbolArray:
+  Enabled: true
+# Mixing the styles looks just silly.
+Style/HashSyntax:
+  EnforcedStyle: no_mixed_keys
+# has_key? and has_value? are far more readable than key? and value?
+Style/PreferredHashMethods:
+  Enabled: false
+# String#% is by far the least verbose and only object oriented variant.
+Style/FormatString:
+  EnforcedStyle: percent
+Style/CollectionMethods:
+  Enabled: true
+# Either allow this style or don't. Marking it as safe with parenthesis
+# is silly. Let's try to live without them for now.
+Style/ParenthesesAroundCondition:
+  AllowSafeAssignment: false
+# A specialized exception class will take one or more arguments and construct the message from it.
+# So both variants make sense.
+Style/RaiseArgs:
+  Enabled: false
+# Fail is an alias of raise. Avoid aliases, it's more cognitive load for no gain.
+# The argument that fail should be used to abort the program is wrong too,
+# there's Kernel#abort for that.
+Style/SignalException:
+  EnforcedStyle: only_raise
+# do / end blocks should be used for side effects,
+# methods that run a block for side effects and have
+# a useful return value are rare, assign the return
+# value to a local variable for those cases.
+Style/MethodCalledOnDoEndBlock:
+  Enabled: true
+# Enforcing the names of variables? To single letter ones? Just no.
+Style/SingleLineBlockParams:
+  Enabled: false
+# Check with yard instead.
+Style/Documentation:
+  Enabled: false
+# Style preference
+Style/MethodDefParentheses:
+  Enabled: false
+Style/HashEachMethods:
+  Enabled: true
+Style/HashTransformKeys:
+  Enabled: true
+Style/HashTransformValues:
+  Enabled: true
+Bundler/OrderedGems:
+  Enabled: false
+Style/FrozenStringLiteralComment:
+  Enabled: false
+Style/Lambda:
+  EnforcedStyle: literal
+Style/AndOr:
+  EnforcedStyle: conditionals
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+RSpec/NestedGroups:
+  Max: 4
+
+RSpec/ExampleLength:
+  Max: 10
+
+RSpec/AnyInstance:
+  Enabled: false

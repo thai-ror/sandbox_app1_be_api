@@ -1,0 +1,10 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "html.format.endWithNewline": true,
+  "files.insertFinalNewline": true,
+  "scssFormatter.singleQuote": true,
+  "files.associations": {
+    "*.erb": "erb"
+  }
+}
