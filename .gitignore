@@ -34,3 +34,4 @@
 /config/application.yml
 
 .env
+/.env
