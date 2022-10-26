@@ -36,10 +36,12 @@ class AuthController < ApplicationController
                     status: :bad_request
     end
 
-    # response = CognitoClient.new(email: user_signin_params[:email]).authenticate
+    user_info = CognitoClient.new(token: @cognito_session.access_token).user_info
 
-    # ap "response"
-    # ap response
+    unless user_info["email_verified"].to_bool
+      return render json: { success: false, message: "Email is not verified" },
+                    status: :bad_request
+    end
 
     render json: { success: true, expire_time: @cognito_session.expire_time }, status: :ok
   rescue StandardError => e

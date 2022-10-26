@@ -1,5 +1,5 @@
 class CognitoClient
-  def initialize(email:, token: nil)
+  def initialize(email: nil, token: nil)
     @client = Aws::CognitoIdentityProvider::Client.new(
       region: ENV["AWS_COGNITO_REGION"],
       access_key_id: ENV["AWS_ACCESS_KEY"],
@@ -16,6 +16,12 @@ class CognitoClient
 
   def authenticate
     @client.admin_initiate_auth(auth_object)
+  end
+
+  def user_info
+    response = @client.get_user(access_token: @token)
+
+    response.user_attributes.each_with_object({}) { |data, h| h[data.name] = data.value }
   end
 
   def sign_out(access_token)
