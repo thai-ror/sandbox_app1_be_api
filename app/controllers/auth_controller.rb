@@ -24,6 +24,8 @@ class AuthController < ApplicationController
   end
 
   def auth
+    return render json: { success: true, login: false }, status: :ok if @cognito_session.new_record?
+
     if @cognito_session.expire_time.nil?
       return render json: { success: false, message: "Invalid user" },
                     status: :bad_request
@@ -44,7 +46,8 @@ class AuthController < ApplicationController
                     status: :bad_request
     end
 
-    render json: { success: true, login: true, expire_time: @cognito_session.expire_time }, status: :ok
+    render json: { success: true, login: true, access_token: @cognito_session.access_token, expire_time: @cognito_session.expire_time },
+           status: :ok
   rescue StandardError => e
     render json: { success: false, message: e&.message || e }, status: :internal_server_error
   end
@@ -73,7 +76,8 @@ class AuthController < ApplicationController
   private
 
   def fetch_cognito_session
-    @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email])
+    @cognito_session = CognitoSession.find_by(access_token: params[:access_token])
+    @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
   end
 
   def auth_params
