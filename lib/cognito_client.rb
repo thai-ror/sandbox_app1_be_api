@@ -24,8 +24,8 @@ class CognitoClient
     response.user_attributes.each_with_object({}) { |data, h| h[data.name] = data.value }
   end
 
-  def sign_out(access_token)
-    @client.global_sign_out(access_token: access_token)
+  def sign_out
+    @client.global_sign_out(access_token: @token)
   end
 
   private

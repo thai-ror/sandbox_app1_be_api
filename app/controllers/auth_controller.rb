@@ -30,9 +30,10 @@ class AuthController < ApplicationController
     end
 
     if @cognito_session.expire_time <= Time.current
-      @cognito_session.reset_expired_token
+      # @cognito_session.reset_expired_token
+      CognitoClient.new(token: @cognito_session.access_token).sign_out
 
-      return render json: { success: false, message: "Token expired", expire_time: @cognito_session.expire_time },
+      return render json: { success: false, login: false, message: "Token expired", expire_time: @cognito_session.expire_time },
                     status: :bad_request
     end
 
@@ -43,7 +44,7 @@ class AuthController < ApplicationController
                     status: :bad_request
     end
 
-    render json: { success: true, expire_time: @cognito_session.expire_time }, status: :ok
+    render json: { success: true, login: true, expire_time: @cognito_session.expire_time }, status: :ok
   rescue StandardError => e
     render json: { success: false, message: e&.message || e }, status: :internal_server_error
   end
@@ -63,11 +64,12 @@ class AuthController < ApplicationController
 
   def sign_out
     if request.headers["Authorization"]
-      Cognito.sign_out(request.headers["Authorization"])
+      CognitoClient.sign_out(request.headers["Authorization"])
       response = { type: "success", message: "now you are disconected" }
     else
       response = { type: "error", message: "empty token" }
     end
+
     render json: response
   end
 
