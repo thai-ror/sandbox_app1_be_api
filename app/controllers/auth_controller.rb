@@ -63,14 +63,11 @@ class AuthController < ApplicationController
   end
 
   def sign_out
-    if request.headers["Authorization"]
-      CognitoClient.sign_out(request.headers["Authorization"])
-      response = { type: "success", message: "now you are disconected" }
-    else
-      response = { type: "error", message: "empty token" }
-    end
+    CognitoClient.new(token: user_signout_params[:access_token]).sign_out
 
-    render json: response
+    render json: { success: true }, status: :ok
+  rescue StandardError => e
+    render json: { success: false, message: e.message }, status: :internal_server_error
   end
 
   private
@@ -93,5 +90,9 @@ class AuthController < ApplicationController
 
   def user_signin_params
     params.slice(:email).permit!
+  end
+
+  def user_signout_params
+    params.slice(:email, :access_token).permit!
   end
 end
