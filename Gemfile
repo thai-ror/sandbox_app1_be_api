@@ -9,25 +9,18 @@ gem "rails", "~> 6.1.5"
 gem "sqlite3", "~> 1.4"
 # Use Puma as the app server
 gem "puma", "~> 5.0"
-# Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
-# gem 'jbuilder', '~> 2.7'
-# Use Redis adapter to run Action Cable in production
-# gem 'redis', '~> 4.0'
-# Use Active Model has_secure_password
-# gem 'bcrypt', '~> 3.1.7'
-
-# Use Active Storage variant
-# gem 'image_processing', '~> 1.2'
-
-# Reduces boot times through caching; required in config/boot.rb
+# Use SCSS for stylesheets
+gem "sass-rails", ">= 6"
 gem "bootsnap", ">= 1.4.4", require: false
 
 gem "dotenv-rails"
-gem "aws-sdk-cognitoidentity"
-gem "aws-sdk-cognitoidentityprovider"
-gem "figaro"
+gem "aws-sdk", "~> 3"
+gem "activerecord-session_store"
+gem "excon"
+gem "json-jwt"
 gem "devise"
 gem "devise-jwt"
+gem "sprockets", "~>3.0"
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible
 # gem 'rack-cors'

@@ -18,10 +18,28 @@ class CognitoClient
     @client.admin_initiate_auth(auth_object)
   end
 
+  def initiate_auth
+    @client.initiate_auth({
+                            client_id: ENV["AWS_COGNITO_APP_CLIENT_ID"],
+                            auth_flow: "USER_PASSWORD_AUTH",
+                            auth_parameters: auth_object
+                          })
+  end
+
+  def authenticate2
+    @client.authenticate(auth_object).authentication_result
+  end
+
   def user_info
     response = @client.get_user(access_token: @token)
 
     response.user_attributes.each_with_object({}) { |data, h| h[data.name] = data.value }
+  end
+
+  def list_users
+    @client.list_users({
+                         user_pool_id: ENV["AWS_COGNITO_POOL_ID"]
+                       })
   end
 
   def sign_out
@@ -34,6 +52,13 @@ class CognitoClient
     {
       username: @email,
       password: ENV["DEFAULT_PASSWORD"]
+    }
+  end
+
+  def auth_object2
+    {
+      USERNAME: @email,
+      PASSWORD: ENV["DEFAULT_PASSWORD"]
     }
   end
 
