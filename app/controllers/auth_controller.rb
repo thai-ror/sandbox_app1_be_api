@@ -5,7 +5,8 @@ class AuthController < ApplicationController
 
   def sign_in
     ActiveRecord::Base.transaction do
-      response = CognitoClient.new(email: user_signin_params[:email], password: user_signin_params[:password]).authenticate.authentication_result
+      response = CognitoClient.new(email: user_signin_params[:email],
+                                   password: user_signin_params[:password]).authenticate.authentication_result
 
       @cognito_session.update(
         login: true,
@@ -93,7 +94,7 @@ class AuthController < ApplicationController
   def sign_out
     ActiveRecord::Base.transaction do
       CognitoClient.new(token: user_signout_params[:access_token]).sign_out
-      @cognito_session.logout!
+      @cognito_session.logout! if @cognito_session.persisted?
 
       render json: { success: true }, status: :ok
     end
@@ -106,6 +107,9 @@ class AuthController < ApplicationController
   def fetch_cognito_session
     @cognito_session = CognitoSession.find_by(access_token: params[:access_token])
     @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
+
+    ap "--> fetch_cognito_session"
+    ap @cognito_session
   end
 
   def auth_params
