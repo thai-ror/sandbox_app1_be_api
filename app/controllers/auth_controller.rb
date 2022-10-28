@@ -94,7 +94,7 @@ class AuthController < ApplicationController
   def sign_out
     ActiveRecord::Base.transaction do
       CognitoClient.new(token: user_signout_params[:access_token]).sign_out
-      @cognito_session.logout! if @cognito_session.persisted?
+      @cognito_session.logout! if @cognito_session&.persisted?
 
       render json: { success: true }, status: :ok
     end
@@ -109,6 +109,9 @@ class AuthController < ApplicationController
     @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
 
     ap "--> fetch_cognito_session"
+    ap params.to_unsafe_h
+
+    ap 'cognito_session'
     ap @cognito_session
   end
 
