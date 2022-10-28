@@ -26,7 +26,7 @@ class Cognito
       password: user_object[:password],
       user_attributes: [
         { name: "email", value: user_object[:email] },
-        { name: "name", value: user_object[:name] },
+        { name: "name", value: user_object[:name] }
         # { name: "phone_number", value: user_object[:phone] },
       ]
     }
@@ -34,7 +34,6 @@ class Cognito
     @client.sign_up(auth_object)
   end
 end
-
 
 # user_object = {username:"test123", email:"test@mail.com", password:"Password123*", phone: "+84123456789", name:'Name', family_name: "family_name", middle_name:"middle_name", address: "HCMC"}
 # Cognito.create_user(user_object)
