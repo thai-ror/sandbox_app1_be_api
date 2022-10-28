@@ -1,7 +1,7 @@
 require "cognito_client"
 
 class AuthController < ApplicationController
-  before_action :fetch_cognito_session, only: %i[auth store sign_in sign_up]
+  before_action :fetch_cognito_session, only: %i[auth store sign_in sign_up sign_out]
 
   def sign_in
     ActiveRecord::Base.transaction do
@@ -111,7 +111,7 @@ class AuthController < ApplicationController
     ap "--> fetch_cognito_session"
     ap params.to_unsafe_h
 
-    ap 'cognito_session'
+    ap "cognito_session"
     ap @cognito_session
   end
 
