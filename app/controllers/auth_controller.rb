@@ -5,7 +5,7 @@ class AuthController < ApplicationController
 
   def sign_in
     ActiveRecord::Base.transaction do
-      response = CognitoClient.new(email: user_signin_params[:email]).authenticate.authentication_result
+      response = CognitoClient.new(email: user_signin_params[:email], password: user_signin_params[:password]).authenticate.authentication_result
 
       @cognito_session.update(
         login: true,
@@ -121,7 +121,7 @@ class AuthController < ApplicationController
   end
 
   def user_signin_params
-    params.slice(:email).permit!
+    params.slice(:email, :password).permit!
   end
 
   def user_signout_params

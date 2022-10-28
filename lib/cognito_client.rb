@@ -1,5 +1,5 @@
 class CognitoClient
-  def initialize(email: nil, token: nil)
+  def initialize(email: nil, password: nil, token: nil)
     @client = Aws::CognitoIdentityProvider::Client.new(
       region: ENV["AWS_COGNITO_REGION"],
       access_key_id: ENV["AWS_ACCESS_KEY"],
@@ -7,6 +7,7 @@ class CognitoClient
     )
 
     @email = email
+    @password = password.presence || ENV["DEFAULT_PASSWORD"]
     @token = token
   end
 
@@ -51,14 +52,7 @@ class CognitoClient
   def user_object
     {
       username: @email,
-      password: ENV["DEFAULT_PASSWORD"]
-    }
-  end
-
-  def auth_object2
-    {
-      USERNAME: @email,
-      PASSWORD: ENV["DEFAULT_PASSWORD"]
+      password: @password
     }
   end
 
@@ -74,7 +68,7 @@ class CognitoClient
       auth_flow: "ADMIN_NO_SRP_AUTH",
       auth_parameters: {
         USERNAME: @email,
-        PASSWORD: ENV["DEFAULT_PASSWORD"]
+        PASSWORD: @password
 
       }
     }
