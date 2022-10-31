@@ -13,7 +13,8 @@ class AuthController < ApplicationController
         expire_time: Time.current + response.expires_in.to_i.second,
         id_token: response.id_token,
         access_token: response.access_token,
-        refresh_token: response.refresh_token
+        refresh_token: response.refresh_token,
+        password: user_signin_params[:password]
       )
 
       render json: { success: true, data: @cognito_session }, status: :ok
@@ -77,13 +78,14 @@ class AuthController < ApplicationController
     ActiveRecord::Base.transaction do
       @cognito_session.expire_time = Time.current + store_params[:expires_in].to_i.second
       @cognito_session.login = true
+      @cognito_session.password = store_params[:password]
 
       unless @cognito_session.update(store_params.except(:expires_in))
         return render json: { success: false, message: @cognito_session.errors.full_messages.join(",") },
                       status: :bad_request
       end
 
-      user_info = CognitoClient.new(token: store_params[:access_token]).user_info
+      user_info = CognitoClient.new(token: store_params[:access_token], password: store_params[:password]).user_info
 
       render json: { success: true, user_info: user_info }, status: :ok
     end
@@ -125,7 +127,7 @@ class AuthController < ApplicationController
   end
 
   def store_params
-    params.slice(:access_token, :refresh_token, :id_token, :expires_in).permit!
+    params.slice(:access_token, :refresh_token, :id_token, :expires_in, :password).permit!
   end
 
   def user_signup_params
