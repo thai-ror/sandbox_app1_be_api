@@ -1,5 +1,5 @@
 class CognitoClient
-  def initialize(email: nil, password: nil, token: nil)
+  def initialize(email: nil, password: nil, phone_number: nil, token: nil)
     @client = Aws::CognitoIdentityProvider::Client.new(
       region: ENV["AWS_COGNITO_REGION"],
       access_key_id: ENV["AWS_ACCESS_KEY"],
@@ -7,11 +7,14 @@ class CognitoClient
     )
 
     @email = email
+    @phone_number = phone_number
     @password = password.presence || ENV["DEFAULT_PASSWORD"]
     @token = token
   end
 
   def create_user
+    ap "-> signup_object"
+    ap signup_object
     @client.sign_up(signup_object)
   end
 
@@ -58,7 +61,10 @@ class CognitoClient
 
   def signup_object
     user_object.merge({ client_id: ENV["AWS_COGNITO_APP_CLIENT_ID"],
-                        user_attributes: [{ name: "email", value: @email }] })
+                        user_attributes: [
+                          { name: "email", value: @email },
+                          { name: "phone_number", value: @phone_number }
+                        ] })
   end
 
   def auth_object

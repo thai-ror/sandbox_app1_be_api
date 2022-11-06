@@ -23,22 +23,6 @@ class AuthController < ApplicationController
     render json: { success: false, message: e&.message || e }, status: :internal_server_error
   end
 
-  def sign_up
-    ActiveRecord::Base.transaction do
-      response = CognitoClient.new(email: user_signup_params[:email]).create_user
-
-      if @cognito_session.new_record?
-        @cognito_session.update(
-          subscriber: response.user_sub
-        )
-      end
-
-      render json: { success: true, data: response }, status: :ok
-    end
-  rescue StandardError => e
-    render json: { success: false, message: e&.message || e }, status: :internal_server_error
-  end
-
   def auth
     return render json: { success: true, login: false }, status: :ok if @cognito_session.new_record?
 
@@ -109,6 +93,25 @@ class AuthController < ApplicationController
     render json: { success: false, message: e.message }, status: :internal_server_error
   end
 
+  def sign_up
+    ActiveRecord::Base.transaction do
+      response = CognitoClient.new(email: user_signup_params[:email],
+        password: user_signup_params[:password],
+        phone_number: user_signup_params[:phone_number]
+      ).create_user
+
+      if @cognito_session.new_record?
+        @cognito_session.update(
+          subscriber: response.user_sub
+        )
+      end
+
+      render json: { success: true, data: response }, status: :ok
+    end
+  rescue StandardError => e
+    render json: { success: false, message: e&.message || e }, status: :internal_server_error
+  end
+
   private
 
   def fetch_cognito_session
@@ -131,7 +134,7 @@ class AuthController < ApplicationController
   end
 
   def user_signup_params
-    params.slice(:email).permit!
+    params.slice(:email, :password, :phone_number).permit!
   end
 
   def user_signin_params
