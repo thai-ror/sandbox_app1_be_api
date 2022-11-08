@@ -79,4 +79,15 @@ class CognitoClient
       }
     }
   end
+
+  def auth_object2
+    {
+      user_pool_id: ENV["AWS_COGNITO_POOL_ID"],
+      client_id: ENV["AWS_COGNITO_APP_CLIENT_ID"],
+      auth_flow: "USER_SRP_AUTH",
+      auth_parameters: {
+        USERNAME: @email
+      }
+    }
+  end
 end

@@ -24,17 +24,14 @@ class AuthController < ApplicationController
   end
 
   def auth
-    return render json: { success: true, login: false }, status: :ok if @cognito_session.new_record?
+    if @cognito_session.new_record?
+      @cognito_session.login = true
+      @cognito_session.assign_attributes(auth_params)
+    end
 
-    # if @cognito_session.expire_time.nil?
-    #   return render json: { success: false, message: "Invalid user" },
-    #                 status: :bad_request
-    # end
     ActiveRecord::Base.transaction do
-      if @cognito_session.expire_time <= Time.current
-        # @cognito_session.reset_expired_token
-        # CognitoClient.new(token: @cognito_session.access_token).sign_out
-        @cognito_session.logout!
+      if @cognito_session.expire_time && @cognito_session.expire_time <= Time.current
+        # @cognito_session.logout!
 
         return render json: { success: false, login: @cognito_session.login, message: "Token expired" },
                       status: :bad_request
@@ -42,16 +39,16 @@ class AuthController < ApplicationController
 
       user_info = CognitoClient.new(token: @cognito_session.access_token).user_info
 
-      # unless user_info["email_verified"].to_bool
-      #   return render json: { success: false, message: "Email is not verified" },
-      #                 status: :bad_request
-      # end
+      if @cognito_session.new_record?
+        @cognito_session.email = user_info["email"]
+        @cognito_session.save!
+      end
 
       render json: {
         success: true,
         login: @cognito_session.login,
-        access_token: @cognito_session.access_token,
-        expire_time: @cognito_session.expire_time
+        expire_time: @cognito_session.expire_time,
+        user_info: user_info
       }, status: :ok
     end
   rescue StandardError => e
@@ -62,14 +59,13 @@ class AuthController < ApplicationController
     ActiveRecord::Base.transaction do
       @cognito_session.expire_time = Time.current + store_params[:expires_in].to_i.second
       @cognito_session.login = true
-      @cognito_session.password = store_params[:password]
 
       unless @cognito_session.update(store_params.except(:expires_in))
         return render json: { success: false, message: @cognito_session.errors.full_messages.join(",") },
                       status: :bad_request
       end
 
-      user_info = CognitoClient.new(token: store_params[:access_token], password: store_params[:password]).user_info
+      user_info = CognitoClient.new(token: store_params[:access_token]).user_info
 
       render json: { success: true, user_info: user_info }, status: :ok
     end
@@ -79,7 +75,7 @@ class AuthController < ApplicationController
 
   def sign_out
     ActiveRecord::Base.transaction do
-      access_token = user_signout_params[:access_token].presence || @cognito_session.access_token
+      access_token = user_signout_params[:access_token]
 
       ap "--> sign_out"
       ap access_token
@@ -96,9 +92,8 @@ class AuthController < ApplicationController
   def sign_up
     ActiveRecord::Base.transaction do
       response = CognitoClient.new(email: user_signup_params[:email],
-        password: user_signup_params[:password],
-        phone_number: user_signup_params[:phone_number]
-      ).create_user
+                                   password: user_signup_params[:password],
+                                   phone_number: user_signup_params[:phone_number]).create_user
 
       if @cognito_session.new_record?
         @cognito_session.update(
@@ -115,8 +110,8 @@ class AuthController < ApplicationController
   private
 
   def fetch_cognito_session
-    @cognito_session = CognitoSession.find_by(access_token: params[:access_token])
-    @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
+    @cognito_session = CognitoSession.find_or_initialize_by(access_token: params[:access_token])
+    # @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
 
     ap "--> fetch_cognito_session"
     ap params.to_unsafe_h
@@ -126,11 +121,11 @@ class AuthController < ApplicationController
   end
 
   def auth_params
-    params.slice(:email).permit!
+    params.slice(:access_token).permit!
   end
 
   def store_params
-    params.slice(:access_token, :refresh_token, :id_token, :expires_in, :password).permit!
+    params.slice(:email, :access_token, :refresh_token, :id_token, :expires_in).permit!
   end
 
   def user_signup_params
@@ -142,6 +137,6 @@ class AuthController < ApplicationController
   end
 
   def user_signout_params
-    params.slice(:email, :access_token).permit!
+    params.slice(:access_token).permit!
   end
 end
