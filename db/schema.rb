@@ -13,9 +13,9 @@
 ActiveRecord::Schema.define(version: 2022_10_31_023315) do
 
   create_table "cognito_sessions", force: :cascade do |t|
-    t.string "email", null: false
-    t.string "subscriber"
+    t.integer "user_id", null: false
     t.datetime "expire_time"
+    t.datetime "issued_time"
     t.text "id_token"
     t.text "access_token"
     t.text "refresh_token"
@@ -23,6 +23,7 @@ ActiveRecord::Schema.define(version: 2022_10_31_023315) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "password"
+    t.index ["user_id"], name: "index_cognito_sessions_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|

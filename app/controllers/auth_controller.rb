@@ -1,48 +1,20 @@
 require "cognito_client"
 
 class AuthController < ApplicationController
-  before_action :fetch_cognito_session, only: %i[auth store sign_in sign_up sign_out]
-
-  def sign_in
-    ActiveRecord::Base.transaction do
-      response = CognitoClient.new(email: user_signin_params[:email],
-                                   password: user_signin_params[:password]).authenticate.authentication_result
-
-      @cognito_session.update(
-        login: true,
-        expire_time: Time.current + response.expires_in.to_i.second,
-        id_token: response.id_token,
-        access_token: response.access_token,
-        refresh_token: response.refresh_token,
-        password: user_signin_params[:password]
-      )
-
-      render json: { success: true, data: @cognito_session }, status: :ok
-    end
-  rescue StandardError => e
-    render json: { success: false, message: e&.message || e }, status: :internal_server_error
-  end
+  before_action :fetch_user, only: %i[store]
+  before_action :fetch_cognito_session, only: %i[store auth sign_out]
 
   def auth
-    if @cognito_session.new_record?
-      @cognito_session.login = true
-      @cognito_session.assign_attributes(auth_params)
-    end
+    return render json: { success: true, login: false } if @cognito_session.new_record?
 
     ActiveRecord::Base.transaction do
-      if @cognito_session.expire_time && @cognito_session.expire_time <= Time.current
-        # @cognito_session.logout!
+      if @cognito_session.expire_time <= Time.current
 
         return render json: { success: false, login: @cognito_session.login, message: "Token expired" },
                       status: :bad_request
       end
 
       user_info = CognitoClient.new(token: @cognito_session.access_token).user_info
-
-      if @cognito_session.new_record?
-        @cognito_session.email = user_info["email"]
-        @cognito_session.save!
-      end
 
       render json: {
         success: true,
@@ -57,15 +29,22 @@ class AuthController < ApplicationController
 
   def store
     ActiveRecord::Base.transaction do
-      @cognito_session.expire_time = Time.current + store_params[:expires_in].to_i.second
-      @cognito_session.login = true
+      if @user.new_record?
+        @user.email = params[:email]
 
-      unless @cognito_session.update(store_params.except(:expires_in))
-        return render json: { success: false, message: @cognito_session.errors.full_messages.join(",") },
-                      status: :bad_request
+        @user.save
       end
 
-      user_info = CognitoClient.new(token: store_params[:access_token]).user_info
+      if @cognito_session.new_record?
+        @cognito_session = CognitoSession.create(user_id: @user.id,
+                                                 expire_time: Time.zone.at(Time.current + store_params[:expire_time].to_i.days),
+                                                 issued_time: Time.current,
+                                                 access_token: store_params[:access_token].strip,
+                                                 refresh_token: store_params[:refresh_token].strip,
+                                                 login: true)
+      end
+
+      user_info = CognitoClient.new(token: @cognito_session.access_token).user_info
 
       render json: { success: true, user_info: user_info }, status: :ok
     end
@@ -75,12 +54,7 @@ class AuthController < ApplicationController
 
   def sign_out
     ActiveRecord::Base.transaction do
-      access_token = user_signout_params[:access_token]
-
-      ap "--> sign_out"
-      ap access_token
-
-      CognitoClient.new(token: access_token).sign_out
+      CognitoClient.new(token: user_signout_params[:access_token]).sign_out
       @cognito_session.logout! if @cognito_session&.persisted?
 
       render json: { success: true }, status: :ok
@@ -89,29 +63,19 @@ class AuthController < ApplicationController
     render json: { success: false, message: e.message }, status: :internal_server_error
   end
 
-  def sign_up
-    ActiveRecord::Base.transaction do
-      response = CognitoClient.new(email: user_signup_params[:email],
-                                   password: user_signup_params[:password],
-                                   phone_number: user_signup_params[:phone_number]).create_user
-
-      if @cognito_session.new_record?
-        @cognito_session.update(
-          subscriber: response.user_sub
-        )
-      end
-
-      render json: { success: true, data: response }, status: :ok
-    end
-  rescue StandardError => e
-    render json: { success: false, message: e&.message || e }, status: :internal_server_error
-  end
-
   private
 
+  def fetch_user
+    unless params[:subscriber]
+      return render json: { success: false, message: "Missing subscriber" },
+                    status: :bad_request
+    end
+
+    @user = User.find_or_initialize_by(subscriber: params[:subscriber])
+  end
+
   def fetch_cognito_session
-    @cognito_session = CognitoSession.find_or_initialize_by(access_token: params[:access_token])
-    # @cognito_session = CognitoSession.find_or_initialize_by(email: params[:email]) if @cognito_session.nil?
+    @cognito_session = CognitoSession.find_or_initialize_by(access_token: store_params[:access_token])
 
     ap "--> fetch_cognito_session"
     ap params.to_unsafe_h
@@ -124,8 +88,13 @@ class AuthController < ApplicationController
     params.slice(:access_token).permit!
   end
 
+  def user_params
+    params.slice(:email, :subscriber).permit!
+  end
+
   def store_params
-    params.slice(:email, :access_token, :refresh_token, :id_token, :expires_in).permit!
+    params.slice(:access_token, :refresh_token, :id_token, :issued_time, :expire_time,
+                 :audience).permit!
   end
 
   def user_signup_params
