@@ -28,6 +28,9 @@ class AuthController < ApplicationController
   end
 
   def store
+    ap '--> store_params'
+    ap store_params
+
     ActiveRecord::Base.transaction do
       if @user.new_record?
         @user.email = params[:email]
@@ -37,7 +40,7 @@ class AuthController < ApplicationController
 
       if @cognito_session.new_record?
         @cognito_session = CognitoSession.create(user_id: @user.id,
-                                                 expire_time: Time.zone.at(Time.current + store_params[:expire_time].to_i.days),
+                                                 expire_time: Time.zone.at(Time.current + store_params[:expire_time].to_i.seconds),
                                                  issued_time: Time.current,
                                                  access_token: store_params[:access_token].strip,
                                                  refresh_token: store_params[:refresh_token].strip,
@@ -45,6 +48,9 @@ class AuthController < ApplicationController
       end
 
       user_info = CognitoClient.new(token: @cognito_session.access_token).user_info
+
+      ap '--> @cognito_session'
+      ap @cognito_session
 
       render json: { success: true, user_info: user_info }, status: :ok
     end
