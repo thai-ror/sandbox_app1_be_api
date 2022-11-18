@@ -68,7 +68,7 @@ class AuthController < ApplicationController
     return render json: { success: false, message: error_message }, status: :bad_request unless valid
 
     ActiveRecord::Base.transaction do
-      CognitoClient.new(token: signout_params).sign_out
+      # CognitoClient.new(token: signout_params).sign_out
       @cognito_session.destroy if @cognito_session&.persisted?
 
       render json: { success: true }, status: :ok
