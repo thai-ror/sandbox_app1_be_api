@@ -5,6 +5,9 @@ class AuthController < ApplicationController
   before_action :fetch_cognito_session, only: %i[store auth sign_out]
 
   def auth
+    valid, error_message = params_valid?(auth_attributes)
+
+    return render json: { success: false, message: error_message }, status: :bad_request unless valid
     return render json: { success: true, login: false } if @cognito_session.new_record?
 
     ActiveRecord::Base.transaction do
@@ -28,12 +31,13 @@ class AuthController < ApplicationController
   end
 
   def store
-    ap "--> store_params"
-    ap store_params
+    valid, error_message = params_valid?(store_attributes)
+
+    return render json: { success: false, message: error_message }, status: :bad_request unless valid
 
     ActiveRecord::Base.transaction do
       if @user.new_record?
-        @user.email = params[:email]
+        @user.email = params[:email].strip
 
         @user.save
       end
@@ -41,8 +45,8 @@ class AuthController < ApplicationController
       @cognito_session.assign_attributes(user_id: @user.id,
                                          expire_time: Time.zone.at(Time.current + store_params[:expire_time].to_i.seconds),
                                          issued_time: Time.current,
-                                         access_token: store_params[:access_token].strip,
                                          refresh_token: store_params[:refresh_token].strip,
+                                         id_token: store_params[:id_token].strip,
                                          login: true)
 
       @cognito_session.save
@@ -59,9 +63,13 @@ class AuthController < ApplicationController
   end
 
   def sign_out
+    valid, error_message = params_valid?(sign_out_attributes)
+
+    return render json: { success: false, message: error_message }, status: :bad_request unless valid
+
     ActiveRecord::Base.transaction do
-      CognitoClient.new(token: user_signout_params[:access_token]).sign_out
-      @cognito_session.logout! if @cognito_session&.persisted?
+      CognitoClient.new(token: signout_params).sign_out
+      @cognito_session.destroy if @cognito_session&.persisted?
 
       render json: { success: true }, status: :ok
     end
@@ -72,16 +80,15 @@ class AuthController < ApplicationController
   private
 
   def fetch_user
-    unless params[:subscriber]
-      return render json: { success: false, message: "Missing subscriber" },
-                    status: :bad_request
-    end
+    valid, error_message = params_valid?(user_attributes)
 
-    @user = User.find_or_initialize_by(subscriber: params[:subscriber])
+    return render json: { success: false, message: error_message }, status: :bad_request unless valid
+
+    @user = User.find_or_initialize_by(subscriber: user_params[:subscriber])
   end
 
   def fetch_cognito_session
-    @cognito_session = CognitoSession.find_or_initialize_by(access_token: store_params[:access_token])
+    @cognito_session = CognitoSession.find_or_initialize_by(access_token: auth_params)
 
     ap "--> fetch_cognito_session"
     ap params.to_unsafe_h
@@ -91,16 +98,41 @@ class AuthController < ApplicationController
   end
 
   def auth_params
-    params.slice(:access_token).permit!
+    params[:access_token]&.strip
   end
 
   def user_params
-    params.slice(:email, :subscriber).permit!
+    params.slice(*user_attributes).permit!
   end
 
   def store_params
-    params.slice(:access_token, :refresh_token, :id_token, :issued_time, :expire_time,
-                 :audience).permit!
+    params.slice(*store_attributes).permit!
+  end
+
+  def signout_params
+    params[:access_token]&.strip
+  end
+
+  def user_attributes
+    %i[email subscriber]
+  end
+
+  def store_attributes
+    %i[access_token refresh_token id_token expire_time]
+  end
+
+  def auth_attributes
+    %i[access_token]
+  end
+
+  def sign_out_attributes
+    %i[access_token]
+  end
+
+  def params_valid?(attributes)
+    attributes.each { |attr| return [false, "Missing #{attr} param"] unless params.key?(attr) }
+
+    [true, nil]
   end
 
   def user_signup_params
@@ -109,9 +141,5 @@ class AuthController < ApplicationController
 
   def user_signin_params
     params.slice(:email, :password).permit!
-  end
-
-  def user_signout_params
-    params.slice(:access_token).permit!
   end
 end
