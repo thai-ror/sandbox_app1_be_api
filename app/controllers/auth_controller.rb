@@ -130,7 +130,7 @@ class AuthController < ApplicationController
   end
 
   def params_valid?(attributes)
-    attributes.each { |attr| return [false, "Missing #{attr} param"] unless params.key?(attr) }
+    attributes.each { |attr| return [false, "Missing #{attr} param"] if !params.key?(attr) || params[attr].blank? }
 
     [true, nil]
   end
